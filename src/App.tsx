@@ -31,9 +31,17 @@ function App() {
     // unlayer.loadDesign(templateJson);
     console.log('onReady', unlayer);
     unlayer.addEventListener('design:updated', (data) => {
-      console.log('design:updated', data);
+     
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({ type: 'unlayer-update', design: data }));
+
+        const updatedunlayer = emailEditorRef.current?.editor;
+
+        updatedunlayer?.exportHtml((data) => {
+            const { design, html } = data;
+            console.log('design:updated', data);
+            ws.current?.send(JSON.stringify({ type: 'unlayer-update', design: design }));
+          });
+        
       }
     });
     window.unlayer = unlayer;
@@ -41,15 +49,16 @@ function App() {
 
   useEffect(() => {
     // Establish WebSocket connection
-    ws.current = new WebSocket('ws://localhost:8080');
+    ws.current = new WebSocket('wss://nodejs-websocketserver.onrender.com');
     ws.current.onopen = () => {
       console.log('WebSocket connection established');
     };
 
     ws.current.onmessage = (event) => {
-      const data = event.data;
-      console.log('WebSocket message received:', data);
-      if (data.type === 'unlayer-update' && window.unlayer) {
+      const data = JSON.parse(event.data);
+      console.log('WebSocket message received:', data,data.type);
+      if (data.type === 'unlayer-update') {
+        console.log('WebSocket message received:', data);
         window.unlayer.loadDesign(data.design);
       }
     };
